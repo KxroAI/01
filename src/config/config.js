@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 openUwU
+ * Copyright (c) 2025 N
  * Code by Neroniel
  * MIT License
  */
@@ -7,22 +7,21 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-
 export const config = {
-  token:
-    process.env.token ||
-    "yourtokenhere",
+  token: process.env.TOKEN || process.env.token || "yourtokenhere",
 
-  clientId: "botclientidhere",
+  clientId: process.env.CLIENT_ID || "botclientidhere",
+
   prefix: process.env.PREFIX || ".",
 
-
   environment: process.env.NODE_ENV || "development",
+
   database: {
-    url: "",
+    url: process.env.MONGO_URI || process.env.MONGODB_URI || "",
   },
+
   debug: true,
-  
+
   links: {
     supportServer: "https://discord.gg/",
     github: "https://github.com/",
@@ -33,5 +32,3 @@ export const config = {
   watermark: "coded by Neroniel",
   version: "2.0.0",
 };
-
-// bread signature
