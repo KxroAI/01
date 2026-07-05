@@ -1,6 +1,6 @@
 /**
- * Copyright (c) 2025 openUwU
- * Code by bre4d777
+ * Copyright (c) 2025 N
+ * Code by Neroniel
  * MIT License
  */
 
