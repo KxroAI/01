@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2025 openUwU
- * Code by bre4d777
+ * Code by Neroniel
  * MIT License
  */
 
@@ -19,18 +19,18 @@ export const config = {
 
   environment: process.env.NODE_ENV || "development",
   database: {
-    url: "mongodb+srv://AeroX:AeroX@aerox.xik7huh.mongodb.net/?retryWrites=true&w=majority&appName=AeroX",
+    url: "",
   },
   debug: true,
   
   links: {
-    supportServer: "https://discord.gg/aerox",
-    github: "https://github.com/OpenUwU",
+    supportServer: "https://discord.gg/",
+    github: "https://github.com/",
     invite:
-      "https://discord.com/api/oauth2/authorize?client_id624000&permissions=8&scope=bot",
+      "https://discord.com/oauth2/authorize?client_id=0000&permissions=8&integration_type=0&scope=bot%20applications.commands",
   },
 
-  watermark: "coded by bre4d",
+  watermark: "coded by Neroniel",
   version: "2.0.0",
 };
 
