@@ -1,0 +1,40 @@
+{
+  "name": "ticket-bot",
+  "version": "2.0.0",
+  "description": "A versatile Discord.js bot with modular command architecture",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "format": "prettier --write \"src/**/*.js\""
+  },
+  "imports": {
+    "#commands/*": "./src/commands/*.js",
+    "#structures/*": "./src/structures/*.js",
+    "#database/*": "./src/database/*.js",
+    "#config/*": "./src/config/*.js",
+    "#utils/*": "./src/utils/*.js",
+    "#events/*": "./src/events/*.js",
+    "#handlers/*": "./src/structures/handlers/*.js",
+    "#classes/*": "./src/structures/classes/*.js",
+    "#db/*": "./src/database/*.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js"
+  ],
+  "author": "Bre4d777",
+  "license": "MIT",
+  "dependencies": {
+    "discord-html-transcripts": "^3.2.0",
+    "discord.js": "^14.25.1",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.0.2",
+    "prettier": "^3.7.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
