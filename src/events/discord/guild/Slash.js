@@ -23,8 +23,8 @@ import { config } from "#config/config";
 import { logger } from "#utils/logger";
 import { validateCommand } from "#utils/permissionHandler";
 import { CommandContext } from "#classes/context";
-import { pendingGuildMap, pendingImageMap } from "../../feedback/feedbackConfig.js";
-import { buildImagePrompt, postFeedback } from "../../feedback/feedbackHandlers.js";
+import { pendingGuildMap, pendingImageMap } from "../../../feedback/feedbackConfig.js";
+import { buildImagePrompt, postFeedback } from "../../../feedback/feedbackHandlers.js";
 
 
 async function _sendError(interaction, title, description, ephemeral = true) {
