@@ -247,6 +247,7 @@ export default {
             imageUrl: attachment.url,
             user: message.author,
             editFn: receiptPending.editFn,
+            channel: message.channel,
           });
         } catch (err) {
           logger.error("MessageCreate", "Failed to post receipt with image", err);
