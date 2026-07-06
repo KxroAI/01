@@ -137,7 +137,7 @@ export function buildReceivedCard({ imageUrl, submitterTag, submitterId, submitt
   const c = new ContainerBuilder().setAccentColor(0x57F287); // green = success
 
   c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## ✅ Receipt Verified`),
+    new TextDisplayBuilder().setContent(`## 💚 Payment Received & Verified!`),
   );
 
   c.addSeparatorComponents(
@@ -148,7 +148,7 @@ export function buildReceivedCard({ imageUrl, submitterTag, submitterId, submitt
     new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `${getEmoji('success') || '✅'} Payment confirmed — all good.`,
+          `${getEmoji('success') || '✅'} **All good!** The receipt has been reviewed and the payment is confirmed on our end.\n\nThe submitter has been verified — everything checks out. ✔️`,
         ),
       )
       .setThumbnailAccessory(
@@ -236,7 +236,7 @@ export function buildReceiptImagePrompt() {
 
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `## 📸 One more thing — drop your screenshot!\nYou didn't include a URL, so just send your receipt image directly in this channel.\n\n> A screenshot is **required** to submit a receipt.\n\n-# You have **60 seconds** before this times out.`,
+      `## 📸 Drop your screenshot!\nSend your receipt image in **any channel in this server** — just attach it to your next message.\n\n> A screenshot is **required** to complete your submission.\n\n-# You have **60 seconds** before this expires.`,
     ),
   );
 
@@ -250,6 +250,18 @@ export function buildReceiptImagePrompt() {
         .setCustomId('cancel_receipt')
         .setLabel('Cancel')
         .setStyle(ButtonStyle.Secondary),
+    ),
+  );
+
+  return { components: [c], flags: MessageFlags.IsComponentsV2 };
+}
+
+export function buildReceiptVerifyingCard() {
+  const c = new ContainerBuilder().setAccentColor(0xFEE75C);
+
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `## 🔍 Got it — verifying now!\nYour screenshot has been received and is being logged into our system.\n\n> Sit tight, this only takes a moment!\n\n-# Please don't send anything else while we process your receipt.`,
     ),
   );
 
