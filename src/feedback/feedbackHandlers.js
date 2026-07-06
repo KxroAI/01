@@ -19,7 +19,7 @@ import {
   MessageFlags,
 } from 'discord.js';
 import { getEmoji } from './emoji.js';
-import { getGuildConfig, buildStars } from './feedbackConfig.js';
+import { buildStars } from './feedbackConfig.js';
 
 /**
  * Builds a rich feedback card component from a submitted review.
@@ -119,8 +119,8 @@ export function buildImagePrompt() {
  * Calls editFn with the result message (success or error).
  */
 export async function postFeedback({ client, guildId, ratingNum, review, imageUrl, user, editFn }) {
-  const guildCfg = getGuildConfig(guildId);
-  if (!guildCfg?.feedbackChannel) {
+  const feedbackChannelId = await client.db.getFeedbackChannel(guildId);
+  if (!feedbackChannelId) {
     const err = new ContainerBuilder().setAccentColor(0xED4245);
     err.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
@@ -143,7 +143,7 @@ export async function postFeedback({ client, guildId, ratingNum, review, imageUr
     return;
   }
 
-  const channel = guild.channels.cache.get(guildCfg.feedbackChannel);
+  const channel = guild.channels.cache.get(feedbackChannelId);
   if (!channel) {
     const err = new ContainerBuilder().setAccentColor(0xED4245);
     err.addTextDisplayComponents(
