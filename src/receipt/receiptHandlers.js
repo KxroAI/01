@@ -32,46 +32,6 @@ function isSendable(channel) {
   return typeof channel?.send === 'function';
 }
 
-// ── Public card (configured receipt channel — no buttons) ────────────────────
-
-export function buildPublicReceiptCard({ imageUrl, user }) {
-  const avatarURL = user.displayAvatarURL({ size: 256, extension: 'png' });
-  const time = timestamp();
-
-  const c = new ContainerBuilder().setAccentColor(0x57F287);
-
-  c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## 🧾 Payment Receipt`),
-  );
-
-  c.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
-  );
-
-  c.addSectionComponents(
-    new SectionBuilder()
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `-# Submitted by **${user.username}**  ·  \`${user.id}\`  ·  ${time}`,
-        ),
-      )
-      .setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarURL)),
-  );
-
-  if (imageUrl && imageUrl.startsWith('http')) {
-    try {
-      c.addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(false),
-      );
-      const g = new MediaGalleryBuilder();
-      g.addItems(new MediaGalleryItemBuilder().setURL(imageUrl));
-      c.addMediaGalleryComponents(g);
-    } catch {}
-  }
-
-  return { components: [c], flags: MessageFlags.IsComponentsV2 };
-}
-
 // ── Log card (admin channel — pending state, has action buttons) ─────────────
 
 export function buildLogReceiptCard({ imageUrl, user }) {
@@ -129,7 +89,59 @@ export function buildLogReceiptCard({ imageUrl, user }) {
   return { components: [c], flags: MessageFlags.IsComponentsV2 };
 }
 
-// ── Resolved cards (after action button click) ───────────────────────────────
+// ── Log card after action (replaces log message once Received/Declined is clicked) ──
+
+export function buildLogActionedCard({ status, imageUrl, submitterTag, submitterId, submitterAvatar, actorTag }) {
+  const time = timestamp();
+  const isReceived = status === 'received';
+
+  const c = new ContainerBuilder().setAccentColor(isReceived ? 0x57F287 : 0xED4245);
+
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      isReceived ? `## ✅ Marked as Received` : `## ❌ Marked as Declined`,
+    ),
+  );
+
+  c.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+  );
+
+  c.addSectionComponents(
+    new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `${getEmoji('user') || '👤'} **${submitterTag}**\n-# User ID: \`${submitterId}\``,
+        ),
+      )
+      .setThumbnailAccessory(new ThumbnailBuilder().setURL(submitterAvatar)),
+  );
+
+  if (imageUrl && imageUrl.startsWith('http')) {
+    try {
+      c.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(false),
+      );
+      const g = new MediaGalleryBuilder();
+      g.addItems(new MediaGalleryItemBuilder().setURL(imageUrl));
+      c.addMediaGalleryComponents(g);
+    } catch {}
+  }
+
+  c.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+  );
+
+  c.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `-# ${isReceived ? 'Verified' : 'Declined'} by **${actorTag}**  ·  ${time}`,
+    ),
+  );
+
+  return { components: [c], flags: MessageFlags.IsComponentsV2 };
+}
+
+// ── DM/channel cards sent to the submitter after action ──────────────────────
 
 export function buildReceivedCard({ imageUrl, submitterTag, submitterId, submitterAvatar, originalTime, actorTag }) {
   const time = timestamp();
@@ -270,9 +282,7 @@ export function buildReceiptVerifyingCard() {
 
 // ── Post receipt ──────────────────────────────────────────────────────────────
 
-export async function postReceipt({ client, guildId, imageUrl, user, editFn }) {
-  const receiptChannelId = await client.db.getReceiptChannel(guildId);
-
+export async function postReceipt({ client, guildId, imageUrl, user, editFn, channel }) {
   const guild = client.guilds.cache.get(guildId);
   if (!guild) {
     const err = new ContainerBuilder().setAccentColor(0xED4245);
@@ -285,51 +295,54 @@ export async function postReceipt({ client, guildId, imageUrl, user, editFn }) {
     return;
   }
 
-  let posted = false;
-
-  // Post public card to configured receipt channel (no buttons)
-  if (receiptChannelId) {
-    const receiptChannel = guild.channels.cache.get(receiptChannelId);
-    if (isSendable(receiptChannel)) {
-      const card = buildPublicReceiptCard({ imageUrl: imageUrl || null, user });
-      await receiptChannel.send(card).then(() => { posted = true; }).catch(() => {});
-    }
-  }
-
-  // Post log card to admin channel with Received/Declined buttons (guild-scoped)
+  // Post log card to admin channel with Received/Declined buttons
   const logChannel = guild.channels.cache.get(RECEIPT_LOG_CHANNEL_ID);
-  if (isSendable(logChannel)) {
-    const logCard = buildLogReceiptCard({ imageUrl: imageUrl || null, user });
-    const msg = await logChannel.send(logCard).catch(() => null);
-    if (msg) {
-      posted = true;
-      // Persist receipt data in MongoDB so buttons survive bot restarts
-      await client.db.createReceiptLog(msg.id, {
-        guildId,
-        imageUrl: imageUrl || null,
-        submitterTag: user.username,
-        submitterId: user.id,
-        submitterAvatar: user.displayAvatarURL({ size: 256, extension: 'png' }),
-      }).catch(() => {});
-    }
-  }
-
-  if (!posted) {
+  if (!isSendable(logChannel)) {
     const err = new ContainerBuilder().setAccentColor(0xED4245);
     err.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `${getEmoji('error') || '❌'} **Delivery failed.** Your receipt couldn't be posted — ask an admin to check the bot's channel permissions or run \`/receiptsetup\` again.`,
+        `${getEmoji('error') || '❌'} **Delivery failed.** The receipt log channel isn't accessible — ask an admin to check the bot's permissions.`,
       ),
     );
     await editFn({ components: [err], flags: MessageFlags.IsComponentsV2 });
     return;
   }
 
-  const c = new ContainerBuilder().setAccentColor(0x57F287);
-  c.addTextDisplayComponents(
+  const logCard = buildLogReceiptCard({ imageUrl: imageUrl || null, user });
+  const msg = await logChannel.send(logCard).catch(() => null);
+  if (!msg) {
+    const err = new ContainerBuilder().setAccentColor(0xED4245);
+    err.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `${getEmoji('error') || '❌'} **Delivery failed.** Couldn't send to the receipt log. Please try again.`,
+      ),
+    );
+    await editFn({ components: [err], flags: MessageFlags.IsComponentsV2 });
+    return;
+  }
+
+  // Persist in MongoDB (submitterChannelId lets us message the user back later)
+  await client.db.createReceiptLog(msg.id, {
+    guildId,
+    submitterChannelId: channel?.id ?? null,
+    imageUrl: imageUrl || null,
+    submitterTag: user.username,
+    submitterId: user.id,
+    submitterAvatar: user.displayAvatarURL({ size: 256, extension: 'png' }),
+  }).catch(() => {});
+
+  // Send success publicly to the channel where the user uploaded their image
+  const successCard = new ContainerBuilder().setAccentColor(0x57F287);
+  successCard.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `## ✅ Receipt Submitted!\nYour payment receipt is now under review.\n\n-# ${getEmoji('info') || 'ℹ️'} Sit tight — you'll know once it's been checked.`,
+      `## ✅ Receipt Submitted!\nYour payment receipt is now under review.\n\n-# ${getEmoji('info') || 'ℹ️'} Sit tight — you'll hear back once it's been checked.`,
     ),
   );
-  await editFn({ components: [c], flags: MessageFlags.IsComponentsV2 });
+  const successPayload = { components: [successCard], flags: MessageFlags.IsComponentsV2 };
+
+  if (isSendable(channel)) {
+    await channel.send(successPayload).catch(() => editFn(successPayload));
+  } else {
+    await editFn(successPayload);
+  }
 }
