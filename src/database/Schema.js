@@ -198,6 +198,7 @@ const receiptLogSchema = new mongoose.Schema(
       index: true,
     },
     guildId: { type: String, required: true, index: true },
+    submitterChannelId: { type: String, default: null },
     imageUrl: { type: String, default: null },
     submitterTag: { type: String, required: true },
     submitterId: { type: String, required: true },
