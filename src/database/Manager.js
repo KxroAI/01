@@ -71,7 +71,7 @@ export class DatabaseManager extends EventEmitter {
     const guild = await Guild.findOneAndUpdate(
       { guildId },
       { $set: data },
-      { new: true }
+      { returnDocument: 'after' }
     );
     logger.debug("Database", `Guild updated: ${guildId}`);
     return guild;
@@ -88,7 +88,7 @@ export class DatabaseManager extends EventEmitter {
     return await Guild.findOneAndUpdate(
       { guildId },
       { $set: { prefix } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 
@@ -111,7 +111,7 @@ export class DatabaseManager extends EventEmitter {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("userBlacklisted", { guildId, userId, reason, blacklistedBy });
     return guild;
@@ -121,7 +121,7 @@ export class DatabaseManager extends EventEmitter {
     const guild = await Guild.findOneAndUpdate(
       { guildId },
       { $pull: { blacklistedUsers: { userId } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("userUnblacklisted", { guildId, userId });
     return guild;
@@ -146,7 +146,7 @@ export class DatabaseManager extends EventEmitter {
     const guild = await Guild.findOneAndUpdate(
       { guildId },
       { $addToSet: { staffRoles: roleId } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return guild;
   }
@@ -155,7 +155,7 @@ export class DatabaseManager extends EventEmitter {
     const guild = await Guild.findOneAndUpdate(
       { guildId },
       { $pull: { staffRoles: roleId } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return guild;
   }
@@ -170,13 +170,27 @@ export class DatabaseManager extends EventEmitter {
     return await Guild.findOneAndUpdate(
       { guildId },
       { $set: { feedbackChannel: channelId } },
-      { new: true }
+      { returnDocument: 'after' }
     );
   }
 
   async getFeedbackChannel(guildId) {
     const guild = await this.getGuild(guildId);
     return guild?.feedbackChannel ?? null;
+  }
+
+  async setFeedbackReviewerRole(guildId, roleId) {
+    await this.createGuild(guildId);
+    return await Guild.findOneAndUpdate(
+      { guildId },
+      { $set: { feedbackReviewerRole: roleId ?? null } },
+      { returnDocument: 'after' }
+    );
+  }
+
+  async getFeedbackReviewerRole(guildId) {
+    const guild = await this.getGuild(guildId);
+    return guild?.feedbackReviewerRole ?? null;
   }
 
   async createPanel(guildId, panelData) {
@@ -208,7 +222,7 @@ export class DatabaseManager extends EventEmitter {
     const panel = await Panel.findOneAndUpdate(
       { panelId },
       { $set: data },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return panel;
   }
@@ -257,7 +271,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return panel;
   }
@@ -268,7 +282,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const updated = await Panel.findOneAndUpdate(
       { panelId, "categories.categoryId": categoryId },
       { $set: { "categories.$": { ...category.toObject(), ...data } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return updated;
   }
@@ -277,7 +291,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const panel = await Panel.findOneAndUpdate(
       { panelId },
       { $pull: { categories: { categoryId } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return panel;
   }
@@ -295,7 +309,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const updated = await Panel.findOneAndUpdate(
       { panelId, "categories.categoryId": categoryId },
       { $set: { "categories.$": updatedCategory } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return updated;
   }
@@ -307,7 +321,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const updated = await Panel.findOneAndUpdate(
       { panelId, "categories.categoryId": categoryId },
       { $set: { "categories.$": category } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return updated;
   }
@@ -316,7 +330,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const panel = await Panel.findOneAndUpdate(
       { panelId, "categories.categoryId": categoryId },
       { $addToSet: { "categories.$.supportRoles": roleId } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return panel;
   }
@@ -325,7 +339,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const panel = await Panel.findOneAndUpdate(
       { panelId, "categories.categoryId": categoryId },
       { $pull: { "categories.$.supportRoles": roleId } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return panel;
   }
@@ -394,7 +408,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
     const ticket = await Ticket.findOneAndUpdate(
       { ticketId },
       { $set: data },
-      { new: true }
+      { returnDocument: 'after' }
     );
     return ticket;
   }
@@ -418,7 +432,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("ticketUserAdded", { 
       ticketId, 
@@ -445,7 +459,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
           addedUsers: { userId },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("ticketUserRemoved", { 
       ticketId, 
@@ -478,7 +492,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
           closeReason: reason,
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("ticketClosed", { 
       ticketId, 
@@ -502,7 +516,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
           closeReason: null,
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("ticketReopened", { 
       ticketId, 
@@ -523,7 +537,7 @@ async setPanelMessageId(panelId, channelId, messageId) {
           "rating.ratedAt": new Date(),
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     this.client.emit("ticketRated", { 
       ticketId, 
