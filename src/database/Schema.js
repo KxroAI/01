@@ -27,6 +27,10 @@ const guildSchema = new mongoose.Schema(
       },
     ],
     staffRoles: [String],
+    feedbackChannel: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
