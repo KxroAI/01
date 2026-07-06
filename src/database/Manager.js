@@ -165,6 +165,20 @@ export class DatabaseManager extends EventEmitter {
     return guild?.staffRoles || [];
   }
 
+  async setFeedbackChannel(guildId, channelId) {
+    await this.createGuild(guildId);
+    return await Guild.findOneAndUpdate(
+      { guildId },
+      { $set: { feedbackChannel: channelId } },
+      { new: true }
+    );
+  }
+
+  async getFeedbackChannel(guildId) {
+    const guild = await this.getGuild(guildId);
+    return guild?.feedbackChannel ?? null;
+  }
+
   async createPanel(guildId, panelData) {
     const panelId = `panel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const panel = await Panel.create({
