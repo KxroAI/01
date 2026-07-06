@@ -17,8 +17,6 @@ import {
   ButtonStyle,
   MessageFlags,
 } from 'discord.js';
-import { receiptPendingGuildMap } from '../../receipt/receiptConfig.js';
-
 function buildReceiptPanel(botAvatarURL) {
   const c = new ContainerBuilder().setAccentColor(0x57F287);
 
@@ -26,7 +24,7 @@ function buildReceiptPanel(botAvatarURL) {
     new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# 🧾 Payment Receipt\nJust made a payment? Get it logged in seconds.\n\nFill in your Roblox username, the amount, and attach a screenshot — either paste a URL or drop an image after submitting.`,
+          `# 🧾 Payment Receipt\nJust made a payment? Get it logged in seconds.\n\nClick the button below and upload your screenshot as proof of payment.`,
         ),
       )
       .setThumbnailAccessory(new ThumbnailBuilder().setURL(botAvatarURL)),
@@ -38,7 +36,7 @@ function buildReceiptPanel(botAvatarURL) {
 
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `-# 📸 A screenshot or image URL is required to submit your receipt.`,
+      `-# 📸 A screenshot is required to submit your receipt.`,
     ),
   );
 
@@ -79,8 +77,6 @@ class ReceiptCommand extends Command {
   async execute({ ctx }) {
     const botAvatar = ctx.client.user.displayAvatarURL({ size: 128, extension: 'png' });
     const panel = buildReceiptPanel(botAvatar);
-
-    receiptPendingGuildMap.set(ctx.user.id, ctx.guild.id);
 
     await ctx.reply({
       components: [panel],
