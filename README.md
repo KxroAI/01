@@ -1,5 +1,3 @@
-![Header](https://raw.githubusercontent.com/OpenUwU/.github/refs/heads/main/header.jpg)
-
 <p align="center">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=for-the-badge&logo=JavaScript&logoColor=black" alt="JavaScript"/>
   <img src="https://img.shields.io/badge/discord.js-5865F2.svg?style=for-the-badge&logo=discorddotjs&logoColor=white" alt="discord.js"/>
@@ -7,172 +5,159 @@
   <img src="https://img.shields.io/badge/MongoDB-13aa52.svg?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB"/>
 </p>
 
-<p align="center">
-  
-  <img src="https://img.shields.io/github/stars/OpenUwU/TicketBot?style=for-the-badge" alt="Stars"/>
-  <img src="https://img.shields.io/github/forks/OpenUwU/TicketBot?style=for-the-badge" alt="Forks"/>
-  <img src="https://img.shields.io/github/issues/OpenUwU/TicketBot?style=for-the-badge" alt="Issues"/>
-</p>
-
 # 🎫 Ticket Bot
 
-**Ticket Bot** is a powerful and versatile Discord ticket management system built with Discord.js, featuring advanced ticket handling capabilities and a modular command architecture. Designed for efficient support ticket management and comprehensive server administration, Ticket Bot streamlines communication between server moderators and members.
+**Ticket Bot** is a powerful Discord ticket management and feedback system built with Discord.js v14. It features a modular command architecture, full slash + prefix command support, an integrated star-rating feedback system, and a modern Components V2 UI throughout.
 
-## ✨ Key Features
+---
+
+## ✨ Features
 
 ### 🎫 Ticket Management
-- **Create Tickets:** Members can easily create support tickets with customizable categories
-- **Ticket Lifecycle:** Complete ticket workflow from creation to closure and archival
-- **Reopen Tickets:** Closed tickets can be reopened if needed with full history preservation
-- **Ticket Ratings:** Rate ticket quality and handler performance with built-in rating system
+- Create tickets with customizable categories and panels
+- Full ticket lifecycle — open → close → reopen → delete
+- Transcript generation via `discord-html-transcripts`
+- Add/remove users from tickets with role-based access control
+- Blacklist users from opening new tickets
 
-### 🛠️ Customization
-- **Custom Panel Settings:** Configure ticket creation panels with custom messages and buttons
-- **Role-Based Access:** Assign support roles with specific permissions and capabilities
-- **Emoji Customization:** Beautiful custom emojis for enhanced visual appeal
-- **Server Configuration:** Granular control over ticket behavior and settings
+### ⭐ Feedback System
+- Members submit star ratings (1–5), written reviews, and an optional image from anywhere in the server
+- Admins run `/setup` once to designate a locked feedback channel — the bot posts a panel there automatically
+- Review card is posted with the rating, review text, optional image, and reviewer info
+- Image-upload flow supported via DM (bot prompts the user to drop an image after the modal, with a Skip option)
+- Application emojis synced automatically on startup
 
-### 📊 Admin Features
-- **Panel Management:** Create and manage multiple ticket panels
-- **Settings Dashboard:** Configure bot behavior from a dedicated settings command
-- **Ticket Logs:** Complete audit trail of all ticket interactions
-- **User Management:** Remove and manage users within ticket channels
+### ⚙️ Administration
+- Per-server prefix customisation
+- Granular ticket panel and settings configuration
+- Blacklist management with add/remove/list subcommands
 
-### 🚀 Performance
-- **Fast Processing:** Optimized for rapid ticket creation and management
-- **Database Efficiency:** MongoDB integration for reliable data storage
-- **Scalable Architecture:** Handles multiple concurrent tickets seamlessly
-- **Component V2 Support:** Modern Discord UI with interactive components
+### 🚀 Architecture
+- ESM-native Node.js with path aliases (`#classes/*`, `#config/*`, etc.)
+- Every command extends a shared `Command` class — both slash and prefix supported without duplication
+- One event file per Discord event — `EventLoader` + `DiscordHandler` wire them automatically
+- MongoDB/Mongoose for persistent data storage
 
-## 🛠️ Technologies Used
+---
 
-- **[Discord.js](https://discord.js.org/)** - Discord API library
-- **[MongoDB](https://www.mongodb.com/)** - Document database for data persistence
-- **[Mongoose](https://mongoosejs.com/)** - MongoDB object modeling
-- **[discord-html-transcripts](https://github.com/ItzDerock/discord-html-transcripts)** - Ticket transcript generation
+## 🛠️ Tech Stack
 
-## 📦 Setup Instructions
+| Library | Purpose |
+|---------|---------|
+| [discord.js v14](https://discord.js.org/) | Discord API |
+| [Mongoose](https://mongoosejs.com/) | MongoDB ODM |
+| [discord-html-transcripts](https://github.com/Neroniel/discord-html-transcripts) | Ticket transcript generation |
+| [dotenv](https://github.com/Neroniel/dotenv) | Environment variable loading |
+
+---
+
+## 📦 Setup
 
 ### Prerequisites
-- Node.js v16.9.0 or higher
-- A Discord Bot Token ([Get one here](https://discord.com/developers/applications))
-- MongoDB database (local or cloud instance)
+- Node.js **≥ 18.0.0**
+- A Discord bot token — [Discord Developer Portal](https://discord.com/developers/applications)
+- MongoDB connection string (local or Atlas)
 
 ### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/OpenUwU/ticket-bot.git
-   cd ticket-bot
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables:**
-   
-   Create a `.env` file in the project root:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` with your configuration:
-   ```env
-   # Required
-   token=your_bot_token_here
-   clientID=your_client_id_here
-   
-   # Database
-   mongodbURL=your_mongodb_connection_string
-   ```
-
-4. **Start the bot:**
-   
-   For production:
-   ```bash
-   npm start
-   ```
-   
-   For development (with hot-reloading):
-   ```bash
-   npm run dev
-   ```
-
-## 📝 Configuration Guide
+```bash
+git clone https://github.com/your-repo/ticket-bot.git
+cd ticket-bot
+npm install
+```
 
 ### Environment Variables
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `token` | Your Discord bot token | ✅ Yes | - |
-| `clientID` | Discord application client ID | ✅ Yes | - |
-| `mongodbURL` | MongoDB connection string | ✅ Yes | - |
-
-See `.env.example` for the complete list of configuration options.
-
-## 🎯 Commands
-
-### Ticket Management Commands
-- `add <user>` - Add a user to the current ticket
-- `close` - Close the current ticket
-- `delete` - Delete the closed ticket
-- `remove <user>` - Remove a user from the ticket
-- `reopen` - Reopen a closed ticket
-
-### Admin Commands
-- `panel` - Create and manage ticket creation panels
-- `settings` - Configure bot settings and behavior
-- `help` - Display help information with all available commands
-
-## 📄 Example .env File
-
-Here's a complete example of a configured `.env` file:
+Create a `.env` file in the project root:
 
 ```env
-# ====================================
-# DISCORD BOT CONFIGURATION
-# ====================================
-token=your_bot_token_here
-clientID=your_client_id_here
+# ── Discord ────────────────────────────────────
+TOKEN=your_bot_token_here
+CLIENT_ID=your_client_id_here
 
-# ====================================
-# DATABASE CONFIGURATION
-# ====================================
-mongodbURL=mongodb+srv://username:password@cluster.mongodb.net/ticketbot
+# ── Bot behaviour ──────────────────────────────
+PREFIX=.
 
-# ====================================
-# ENVIRONMENT
-# ====================================
+# ── Database ───────────────────────────────────
+MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/ticketbot
+
+# ── Environment ────────────────────────────────
 NODE_ENV=production
 ```
 
-> **⚠️ Security Warning:** Never commit your `.env` file to version control! Always keep your tokens and connection strings private.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TOKEN` | ✅ | Discord bot token |
+| `CLIENT_ID` | ✅ | Discord application client ID |
+| `PREFIX` | ✅ | Prefix for text commands (e.g. `.`) |
+| `MONGO_URI` | ✅ | MongoDB connection string |
+| `NODE_ENV` | — | `production` or `development` (default: `development`) |
 
-## 🚨 Important Notes
+> **⚠️ Security:** Never commit your `.env` file to version control.
 
-- **Under Development:** This project is actively being developed. Expect potential bugs and breaking changes.
-- **Report Issues:** Found a bug? Please report it on the [GitHub Issues](https://github.com/OpenUwU/ticket-bot/issues) page.
-- **Public Hosting:** Hosting a public instance without permission is prohibited.
-- **Credits:** Do not remove or modify the project credits.
+### Starting the Bot
 
-## 🤝 Contributing
+```bash
+npm start
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+---
 
-## 👥 Credits
+## 🎯 Commands
 
-**Ticket Bot** is maintained by [The OpenUwU Project](https://github.com/OpenUwU) and created by **bre4d777**.
+All commands work as both slash (`/command`) and prefix (`<prefix>command`).
+
+### 🎫 Ticket
+| Command | Description |
+|---------|-------------|
+| `add <user>` | Add a user to the current ticket |
+| `remove <user>` | Remove a user from the current ticket |
+| `close` | Close the current ticket |
+| `delete` | Permanently delete the ticket channel |
+| `reopen` | Reopen a closed ticket |
+
+### ⚙️ Panel & Settings
+| Command | Description |
+|---------|-------------|
+| `panel` | Create and manage ticket creation panels |
+| `settings` | Configure bot behaviour for this server |
+
+### 👑 Admin *(Manage Server)*
+| Command | Description |
+|---------|-------------|
+| `blacklist add <user>` | Blacklist a user from opening tickets |
+| `blacklist remove <user>` | Remove a user from the blacklist |
+| `blacklist list` | List all blacklisted users |
+| `prefix <new>` | Change the bot prefix for this server |
+
+### ⭐ Feedback
+| Command | Description |
+|---------|-------------|
+| `feedback` | Open the feedback panel to submit a review |
+| `setup [#channel]` | Set the feedback channel *(Manage Server)* |
+
+### 🔧 Utility
+| Command | Description |
+|---------|-------------|
+| `ping` | Check WebSocket and REST latency |
+| `help` | Show the full command reference |
+
+---
+
+## 🚨 Notes
+
+- This project is actively developed — expect updates and occasional breaking changes.
+- Do not remove or modify credits.
+- Hosting a public instance without permission is prohibited.
 
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/bre4d777">bre4d777</a>
+  Made with ❤️ by <a href="https://github.com/Neroniel">Neroniel</a>
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/aerox">Support Server</a> •
-  <a href="https://github.com/OpenUwU/ticket-bot/issues">Report Bug</a> •
-  <a href="https://github.com/OpenUwU/ticket-bot/issues">Request Feature</a>
+  <a href="https://www.roblox.com/communities/5838002/1cy">Support Server</a> •
+  <a href="https://github.com/">Report Bug</a> •
+  <a href="https://github.com/">Request Feature</a>
 </p>
