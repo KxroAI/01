@@ -28,7 +28,7 @@ import { CommandContext } from "#classes/context";
 import { pendingGuildMap, pendingImageMap } from "../../../feedback/feedbackConfig.js";
 import { buildImagePrompt, postFeedback } from "../../../feedback/feedbackHandlers.js";
 import { receiptPendingImageMap, RECEIPT_ACTION_USER_ID } from "../../../receipt/receiptConfig.js";
-import { buildReceiptImagePrompt, buildReceiptVerifyingCard, postReceipt, buildReceivedCard, buildDeclinedCard } from "../../../receipt/receiptHandlers.js";
+import { buildReceiptImagePrompt, buildReceiptVerifyingCard, buildLogActionedCard, postReceipt, buildReceivedCard, buildDeclinedCard } from "../../../receipt/receiptHandlers.js";
 
 
 async function _sendError(interaction, title, description, ephemeral = true) {
@@ -520,7 +520,19 @@ async function handleReceiptButton(interaction, client) {
       ? doc.createdAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       : 'unknown';
 
-    const resolved = isReceived
+    // Update log message to a simple actioned card (no buttons)
+    const logCard = buildLogActionedCard({
+      status: newStatus,
+      imageUrl: doc.imageUrl,
+      submitterTag: doc.submitterTag,
+      submitterId: doc.submitterId,
+      submitterAvatar: doc.submitterAvatar,
+      actorTag,
+    });
+    await interaction.update(logCard);
+
+    // Send the result card to the submitter's upload channel, fall back to DM
+    const submitterCard = isReceived
       ? buildReceivedCard({
           imageUrl: doc.imageUrl,
           submitterTag: doc.submitterTag,
@@ -538,7 +550,25 @@ async function handleReceiptButton(interaction, client) {
           actorTag,
         });
 
-    return interaction.update(resolved);
+    // Try the channel where the user uploaded, then DM as fallback
+    let notified = false;
+    if (doc.submitterChannelId) {
+      try {
+        const guild = interaction.guild ?? client.guilds.cache.get(doc.guildId);
+        const ch = guild?.channels.cache.get(doc.submitterChannelId);
+        if (typeof ch?.send === 'function') {
+          await ch.send(submitterCard);
+          notified = true;
+        }
+      } catch {}
+    }
+    if (!notified) {
+      try {
+        const submitter = await client.users.fetch(doc.submitterId);
+        await submitter.send(submitterCard);
+      } catch {}
+    }
+    return;
   }
 }
 
