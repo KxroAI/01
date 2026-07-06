@@ -27,8 +27,8 @@ import { validateCommand } from "#utils/permissionHandler";
 import { CommandContext } from "#classes/context";
 import { pendingGuildMap, pendingImageMap } from "../../../feedback/feedbackConfig.js";
 import { buildImagePrompt, postFeedback } from "../../../feedback/feedbackHandlers.js";
-import { receiptPendingGuildMap, receiptPendingImageMap, RECEIPT_ACTION_USER_ID } from "../../../receipt/receiptConfig.js";
-import { buildReceiptImagePrompt, postReceipt, buildReceivedCard, buildDeclinedCard } from "../../../receipt/receiptHandlers.js";
+import { receiptPendingImageMap, RECEIPT_ACTION_USER_ID } from "../../../receipt/receiptConfig.js";
+import { buildReceiptImagePrompt, buildReceiptVerifyingCard, postReceipt, buildReceivedCard, buildDeclinedCard } from "../../../receipt/receiptHandlers.js";
 
 
 async function _sendError(interaction, title, description, ephemeral = true) {
@@ -408,28 +408,47 @@ async function handleFeedbackModal(interaction, client) {
 // ── Receipt: button & modal handlers ─────────────────────────────────────────
 
 async function handleReceiptButton(interaction, client) {
-  // ── Open receipt modal ───────────────────────────────────────────────────
+  // ── Submit Receipt button — skip modal, go straight to image upload ──────
   if (interaction.customId === 'open_receipt_modal') {
-    if (interaction.guildId) {
-      receiptPendingGuildMap.set(interaction.user.id, interaction.guildId);
+    const guildId = interaction.guildId;
+    if (!guildId) {
+      const err = new ContainerBuilder().setAccentColor(0xED4245);
+      err.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `⚠️ Couldn't determine which server this is for. Please use \`/receipt\` inside the server.`,
+        ),
+      );
+      return interaction.reply({ components: [err], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     }
 
-    const modal = new ModalBuilder()
-      .setCustomId('receipt_modal')
-      .setTitle('🧾 Payment Receipt');
+    // If user already has a pending upload, clear it first
+    const existing = receiptPendingImageMap.get(interaction.user.id);
+    if (existing) {
+      clearTimeout(existing.timeout);
+      receiptPendingImageMap.delete(interaction.user.id);
+    }
 
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId('receipt_imageUrl')
-          .setLabel('Screenshot URL (optional)')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('https://... — or leave blank to upload an image after')
-          .setRequired(false),
-      ),
-    );
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    await interaction.showModal(modal);
+    const timeoutId = setTimeout(async () => {
+      if (!receiptPendingImageMap.has(interaction.user.id)) return;
+      receiptPendingImageMap.delete(interaction.user.id);
+      const expired = new ContainerBuilder().setAccentColor(0xED4245);
+      expired.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `## ⏱️ Timed Out\nNo screenshot was received in time — your receipt was **not** submitted.\n\n-# Run \`/receipt\` again and upload your screenshot within 60 seconds.`,
+        ),
+      );
+      await interaction.editReply({ components: [expired], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+    }, 60_000);
+
+    receiptPendingImageMap.set(interaction.user.id, {
+      guildId,
+      timeout: timeoutId,
+      editFn: (data) => interaction.editReply(data),
+    });
+
+    await interaction.editReply(buildReceiptImagePrompt());
     return;
   }
 
@@ -440,7 +459,6 @@ async function handleReceiptButton(interaction, client) {
       clearTimeout(pending.timeout);
       receiptPendingImageMap.delete(interaction.user.id);
     }
-    receiptPendingGuildMap.delete(interaction.user.id);
 
     await interaction.deferUpdate();
     const err = new ContainerBuilder().setAccentColor(0xED4245);
@@ -524,59 +542,6 @@ async function handleReceiptButton(interaction, client) {
   }
 }
 
-async function handleReceiptModal(interaction, client) {
-  if (interaction.customId !== 'receipt_modal') return;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-  const imageUrl = interaction.fields.getTextInputValue('receipt_imageUrl')?.trim() ?? '';
-
-  const guildId = interaction.guildId ?? receiptPendingGuildMap.get(interaction.user.id);
-  receiptPendingGuildMap.delete(interaction.user.id);
-
-  if (!guildId) {
-    const err = new ContainerBuilder().setAccentColor(0xED4245);
-    err.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        '⚠️ Could not determine which server this receipt is for. Please use `/receipt` inside the server.',
-      ),
-    );
-    return interaction.editReply({ components: [err], flags: MessageFlags.IsComponentsV2 });
-  }
-
-  // If a URL was provided, post immediately
-  if (imageUrl && imageUrl.startsWith('http')) {
-    await postReceipt({
-      client,
-      guildId,
-      imageUrl,
-      user: interaction.user,
-      editFn: (data) => interaction.editReply(data),
-    });
-    return;
-  }
-
-  // No URL — prompt user to upload a screenshot (required, 60 s window)
-  const timeoutId = setTimeout(async () => {
-    if (!receiptPendingImageMap.has(interaction.user.id)) return;
-    receiptPendingImageMap.delete(interaction.user.id);
-    const expired = new ContainerBuilder().setAccentColor(0xED4245);
-    expired.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `## ⏱️ Timed Out\nNo screenshot was received in time — your receipt was **not** submitted.\n\n-# Run \`/receipt\` again and attach your screenshot within 60 seconds.`,
-      ),
-    );
-    await interaction.editReply({ components: [expired], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
-  }, 60_000);
-
-  receiptPendingImageMap.set(interaction.user.id, {
-    guildId,
-    timeout: timeoutId,
-    editFn: (data) => interaction.editReply(data),
-  });
-
-  await interaction.editReply(buildReceiptImagePrompt());
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -607,11 +572,6 @@ export default {
         await handleFeedbackModal(interaction, client);
       } catch (error) {
         logger.error("InteractionCreate", "Error in feedback modal handler", error);
-      }
-      try {
-        await handleReceiptModal(interaction, client);
-      } catch (error) {
-        logger.error("InteractionCreate", "Error in receipt modal handler", error);
       }
     }
   },
