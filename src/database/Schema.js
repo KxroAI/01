@@ -31,6 +31,10 @@ const guildSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    feedbackReviewerRole: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
