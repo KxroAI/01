@@ -23,22 +23,41 @@ import { getEmoji } from '../../feedback/emoji.js';
 import { config } from '#config/config';
 import { RECEIPT_LOG_CHANNEL_ID } from '../../receipt/receiptConfig.js';
 
-function buildReceiptPanel() {
+function buildReceiptPanel(botAvatarURL) {
   const c = new ContainerBuilder().setAccentColor(0x57F287);
+
   c.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`# 🧾 Payment Receipt`),
+    new TextDisplayBuilder().setContent(`## 🧾 Payment Receipts`),
   );
+
   c.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
   );
+
+  c.addSectionComponents(
+    new SectionBuilder()
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `Made a payment? Submit your receipt here for verification.\n\nClick **Submit Receipt** and upload your screenshot — we'll take it from there.`,
+        ),
+      )
+      .setThumbnailAccessory(new ThumbnailBuilder().setURL(botAvatarURL)),
+  );
+
+  c.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+  );
+
   c.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `Submit your payment receipt here.\nProvide a screenshot URL or upload an image as proof of payment.`,
+      `-# 📸 A screenshot is required to complete your submission.`,
     ),
   );
+
   c.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
   );
+
   c.addActionRowComponents(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -47,6 +66,7 @@ function buildReceiptPanel() {
         .setStyle(ButtonStyle.Success),
     ),
   );
+
   return c;
 }
 
@@ -73,7 +93,7 @@ async function finishSetup(client, guildId, guild, channel, botAvatar, replyFn) 
   await client.db.setReceiptChannel(guildId, channel.id);
   await lockChannel(channel, guild);
   await channel.send({
-    components: [buildReceiptPanel()],
+    components: [buildReceiptPanel(botAvatar)],
     flags: MessageFlags.IsComponentsV2,
   });
 
