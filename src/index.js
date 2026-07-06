@@ -6,6 +6,7 @@
 
 import { Bot } from "#classes/client";
 import { logger } from "#utils/logger";
+import express from "express";
 
 process.removeAllListeners("warning");
 process.on("warning", (warning) => {
@@ -20,8 +21,16 @@ process.on("warning", (warning) => {
 
 const client = new Bot();
 
+const startServer = () => {
+  const app = express();
+  const port = process.env.PORT || 3000;
+  app.get("/", (_req, res) => res.send("Bot is running."));
+  app.listen(port, () => logger.info("Server", `Keepalive server listening on port ${port}`));
+};
+
 const main = async () => {
   try {
+    startServer();
     await client.init();
     logger.success("Main", "Discord bot initialized successfully");
   } catch (error) {
