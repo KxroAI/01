@@ -18,6 +18,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ActionRowBuilder,
+  RoleSelectMenuBuilder,
+  PermissionFlagsBits,
 } from "discord.js";
 import { config } from "#config/config";
 import { logger } from "#utils/logger";
@@ -202,7 +204,70 @@ async function handleAutocomplete(interaction, client) {
 // ── Feedback: button & modal handlers ────────────────────────────────────────
 
 async function handleFeedbackButton(interaction, client) {
+  // ── Reviewer-role select menu ─────────────────────────────────────────────
+  if (interaction.customId === "reviewer_role_select") {
+    const roleId = interaction.values?.[0];
+    if (!roleId) return;
+    await client.db.setFeedbackReviewerRole(interaction.guildId, roleId);
+
+    const c = new ContainerBuilder().setAccentColor(0x57F287);
+    c.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `✅ **Role saved.** Only members with <@&${roleId}> (and administrators) can now submit reviews.`,
+      ),
+    );
+    c.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+    );
+    c.addActionRowComponents(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("remove_reviewer_role")
+          .setLabel("Remove restriction")
+          .setStyle(ButtonStyle.Danger),
+      ),
+    );
+    return interaction.update({ components: [c], flags: MessageFlags.IsComponentsV2 });
+  }
+
+  // ── Remove reviewer-role restriction ──────────────────────────────────────
+  if (interaction.customId === "remove_reviewer_role") {
+    await client.db.setFeedbackReviewerRole(interaction.guildId, null);
+
+    const c = new ContainerBuilder().setAccentColor(0x57F287);
+    c.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `✅ **Restriction removed.** Everyone can now submit reviews.`,
+      ),
+    );
+    return interaction.update({ components: [c], flags: MessageFlags.IsComponentsV2 });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (interaction.customId === "open_feedback_modal") {
+    // ── Reviewer-role permission gate ─────────────────────────────────────
+    if (interaction.guildId) {
+      const reviewerRoleId = await client.db.getFeedbackReviewerRole(interaction.guildId);
+      if (reviewerRoleId) {
+        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+        const hasRole = interaction.member?.roles?.cache?.has(reviewerRoleId);
+        if (!isAdmin && !hasRole) {
+          const c = new ContainerBuilder().setAccentColor(0xED4245);
+          c.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `⚠️ Only members with <@&${reviewerRoleId}> can submit a review here.`,
+            ),
+          );
+          return interaction.reply({
+            components: [c],
+            flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+          });
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     // Track which guild this feedback targets
     if (interaction.guildId) {
       pendingGuildMap.set(interaction.user.id, interaction.guildId);
