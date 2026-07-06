@@ -18,6 +18,7 @@ import {
   ButtonStyle,
   MessageFlags,
   ChannelType,
+  RoleSelectMenuBuilder,
 } from 'discord.js';
 import { getEmoji } from '../../feedback/emoji.js';
 import { config } from '#config/config';
@@ -92,6 +93,22 @@ async function finishSetup(client, guildId, guild, channel, botAvatar, replyFn, 
   ok.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
       `-# ${getEmoji('info')} Users can submit reviews with \`/feedback\` or \`${config.prefix}feedback\` from anywhere in the server`,
+    ),
+  );
+
+  ok.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true),
+  );
+  ok.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `🎭 **Reviewer Role** *(optional)*\nRestrict who can submit reviews to a specific role. Administrators can always review regardless.`,
+    ),
+  );
+  ok.addActionRowComponents(
+    new ActionRowBuilder().addComponents(
+      new RoleSelectMenuBuilder()
+        .setCustomId('reviewer_role_select')
+        .setPlaceholder('Pick a role — or leave blank to allow everyone'),
     ),
   );
 
