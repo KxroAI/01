@@ -7,6 +7,13 @@
 import { Bot } from "#classes/client";
 import { logger } from "#utils/logger";
 import express from "express";
+import { webcrypto } from "node:crypto";
+
+// Node.js 18 doesn't expose globalThis.crypto by default; mongodb driver v7
+// needs crypto.getRandomValues (Web Crypto API). Polyfill it once here.
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
 
 process.removeAllListeners("warning");
 process.on("warning", (warning) => {
@@ -25,7 +32,16 @@ const startServer = () => {
   const app = express();
   const port = process.env.PORT || 3000;
   app.get("/", (_req, res) => res.send("Bot is running."));
-  app.listen(port, () => logger.info("Server", `Keepalive server listening on port ${port}`));
+  const server = app.listen(port, () =>
+    logger.info("Server", `Keepalive server listening on port ${port}`)
+  );
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      logger.warn("Server", `Port ${port} already in use — keepalive server skipped`);
+    } else {
+      logger.error("Server", "Keepalive server error", err);
+    }
+  });
 };
 
 const main = async () => {
@@ -51,13 +67,16 @@ const shutdown = async (signal) => {
   }
 };
 
-process.on("unhandledRejection", (reason, promise) => {
+process.on("unhandledRejection", (reason) => {
   logger.error("Process", "Unhandled Rejection", reason);
-  logger.error(promise);
+  // Non-fatal: keep running. Promoted to fatal only when it becomes an uncaughtException.
 });
 
 process.on("uncaughtException", (error, origin) => {
   logger.error("Process", `Uncaught Exception: ${origin}`, error);
+  // Exit so the supervisor (Render/PM2) can do a clean restart instead of
+  // running in a partially-initialised state.
+  process.exit(1);
 });
 
 process.on("SIGINT", () => shutdown("SIGINT"));
