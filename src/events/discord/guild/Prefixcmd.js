@@ -24,7 +24,7 @@ import { emoji } from "#config/emoji";
 import { pendingImageMap } from "../../../feedback/feedbackConfig.js";
 import { postFeedback } from "../../../feedback/feedbackHandlers.js";
 import { receiptPendingImageMap } from "../../../receipt/receiptConfig.js";
-import { postReceipt } from "../../../receipt/receiptHandlers.js";
+import { postReceipt, buildReceiptVerifyingCard } from "../../../receipt/receiptHandlers.js";
 
 const CUSTOM_PREFIXES = {
   GLOBAL: ["yuki"],
@@ -224,6 +224,11 @@ export default {
     // ── Receipt: handle pending image uploads ─────────────────────────────────
     const receiptPending = receiptPendingImageMap.get(message.author.id);
     if (receiptPending) {
+      // Only accept the image from the correct guild — ignore messages from other servers or DMs
+      if (!message.guild || message.guild.id !== receiptPending.guildId) {
+        return;
+      }
+
       const attachment = message.attachments.first();
       const isImage = attachment && (
         attachment.contentType?.startsWith("image/") ||
@@ -235,6 +240,7 @@ export default {
         receiptPendingImageMap.delete(message.author.id);
         try {
           await message.react("✅").catch(() => {});
+          await receiptPending.editFn(buildReceiptVerifyingCard());
           await postReceipt({
             client,
             guildId: receiptPending.guildId,
