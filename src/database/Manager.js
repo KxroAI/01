@@ -209,10 +209,11 @@ export class DatabaseManager extends EventEmitter {
 
   // ── Receipt log ─────────────────────────────────────────────────────────────
 
-  async createReceiptLog(messageId, { guildId, imageUrl, submitterTag, submitterId, submitterAvatar }) {
+  async createReceiptLog(messageId, { guildId, submitterChannelId, imageUrl, submitterTag, submitterId, submitterAvatar }) {
     return await ReceiptLog.create({
       messageId,
       guildId,
+      submitterChannelId: submitterChannelId ?? null,
       imageUrl: imageUrl ?? null,
       submitterTag,
       submitterId,
