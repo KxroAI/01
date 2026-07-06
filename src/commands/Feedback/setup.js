@@ -20,7 +20,6 @@ import {
   ChannelType,
 } from 'discord.js';
 import { getEmoji } from '../../feedback/emoji.js';
-import { setGuildConfig } from '../../feedback/feedbackConfig.js';
 import { config } from '#config/config';
 
 function buildFeedbackPanel() {
@@ -69,8 +68,8 @@ async function lockChannel(channel, guild) {
   } catch {}
 }
 
-async function finishSetup(guildId, guild, channel, botAvatar, replyFn, isSlash = true) {
-  setGuildConfig(guildId, { feedbackChannel: channel.id });
+async function finishSetup(client, guildId, guild, channel, botAvatar, replyFn, isSlash = true) {
+  await client.db.setFeedbackChannel(guildId, channel.id);
   await lockChannel(channel, guild);
   await channel.send({
     components: [buildFeedbackPanel()],
@@ -189,7 +188,7 @@ class SetupCommand extends Command {
       }
     }
 
-    await finishSetup(ctx.guild.id, ctx.guild, channel, botAvatar, replyFn, ctx.isSlash);
+    await finishSetup(ctx.client, ctx.guild.id, ctx.guild, channel, botAvatar, replyFn, ctx.isSlash);
   }
 }
 
