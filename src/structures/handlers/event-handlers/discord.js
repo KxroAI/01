@@ -14,9 +14,9 @@ export default class DiscordHandler {
 
   async register(event) {
     try {
-      const listener = (...args) => {
+      const listener = async (...args) => {
         try {
-          event.execute({ eventArgs: args, client: this.client });
+          await event.execute({ eventArgs: args, client: this.client });
         } catch (error) {
           logger.error(
             "DiscordEvent",
